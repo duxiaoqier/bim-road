@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" name="viewport"/>
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no,initial-scale=1.0, maximum-scale=1.0,minimum-scale=1.0"/>
+    <link rel="stylesheet" type="text/css" href="css/base.css">
+    <script src="js/jquery-2.1.1.js"></script>
+    <script src="js/jquery.form.min.js"></script>
+    <script type="text/javascript"
+            src="http://api.map.baidu.com/api?v=2.0&ak=FIMa2TDW7HWw0hpoRHCIrOF0yx5wv7hT"></script>
+    <title>上报问题</title>
+</head>
+<body>
+<div style="margin: 10px;">
+
+    <div class="name">
+        <ul class="Iname clearfloat">
+            <li><img src="image/landscape.jpg"/></li>
+            <li>
+                <p>name:<span id="pname">张三</span></p>
+                <p>tel:<span id="ptel">18814860000</span></p>
+                <p>Role:<span id="ptitle">经理</span></p>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<hr/>
+<div style="margin: 20px;">
+    <form id="problemForm" method="post" action="problem/form" enctype='multipart/form-data'>
+        <div class="qj">
+            <div>
+                <h1>报告人姓名</h1>
+                <input id="reporterName" name="reporterName" class="formitem">
+                <h1>报告人联系方式</h1>
+                <input id="phoneNum" name="phoneNum">
+            </div>
+            <div>
+                <h1>职位</h1>
+                <input id="role" name="role">
+            </div>
+            <div>
+                <h1>主题</h1>
+                <input id="problemTitle" name="problemTitle">
+            </div>
+            <div>
+                <h1>问题现场</h1>
+                <input id="image" name="image" type="file">
+            </div>
+            <div>
+                <h1>内容</h1>
+                <textarea id="problemContent" name="problemContent"></textarea>
+            </div>
+            <div style="display:none">
+                <input id= "jd" name="jd">
+                <input id= "wd" name="wd">
+                <input id= "positionX" name="positionX" value="x: 366320.04584861035">
+                <input id= "positionY" name="positionY" value="379580.09231413313">
+                <input id= "positionZ" name="positionZ" value="-23.84736155436842">
+            </div>
+            <!--2、隔离带损坏    （该数据演示的时候填）-->
+            <!--东侧非机动道和隔离带圆头损坏-->
+            <!--31.2481820000,121.5898570000-->
+            <!--worldPosition: Object { x: 366320.04584861035, y: 379580.09231413313, z: -23.84736155436842 }-->
+
+            <div><input type="button" id="submitbutton" value="提交" name="" class="btnsub"/></div>
+        </div>
+    </form>
+
+    <div id="allmap" style="height: 100px"></div>
+</div>
+</body>
+</html>
+
+
+<script type="text/javascript">
+    var map = new BMap.Map("allmap");
+    var geolocation = new BMap.Geolocation();
+    geolocation.getCurrentPosition(function (r) {
+        if (this.getStatus() === BMAP_STATUS_SUCCESS) {
+            var mk = new BMap.Marker(r.point);
+            map.addOverlay(mk);
+            map.panTo(r.point);
+            // document.getElementById("jd").value = r.point.lng;
+            // document.getElementById("wd").value = r.point.lat;
+        } else {
+            alert('failed' + this.getStatus());
+        }
+    }, {enableHighAccuracy: true})
+
+    document.getElementById("jd").value = 31.2481820000;
+    document.getElementById("wd").value = 121.5898570000;
+    document.getElementById("reporterName").value = document.getElementById("pname").innerText;
+    document.getElementById("phoneNum").value = document.getElementById("ptel").innerText;
+    document.getElementById("role").value = document.getElementById("ptitle").innerText;
+
+    var problemFromOptions = {
+        success: showSuccessProblemResponse,      //提交后的回调函数
+        error: showErrorProblemResponse,      //提交后的回调函数
+        timeout: 30000               //限制请求的时间，当请求大于30秒后，跳出请求
+    }
+
+    $('#submitbutton').click(function () {
+        $("#problemForm").ajaxSubmit(problemFromOptions);
+    })
+    function showSuccessProblemResponse(response) {
+        console.log(response)
+        alert("提交成功")
+    }
+    function showErrorProblemResponse(response) {
+        console.log(response)
+        alert("出错啦")
+    }
+</script>

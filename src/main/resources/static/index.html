@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>BIMROAD 主页</title>
+    <style type="text/css">
+    html {
+        height: 100%
+    }
+
+    body {
+        height: 100%;
+        margin: 0px;
+        padding: 0px
+    }
+
+    #allmap {
+        height: 100%;
+        margin-top: 60px;
+    }
+    </style>
+    <link rel="stylesheet" href="css/hack-new.css" />
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=ZLGsafDLGykBFgli0I8e3ZGEdUy3lP2R">
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="header-bar">
+            <div>
+                <img class="head-logo-img" src="image/logo.png">
+            </div>
+        </div>
+        <div id="allmap"></div>
+    </div>
+    <script src="https://static.bimface.com/developer/js/vue.js"></script>
+    <script src="https://static.bimface.com/developer/js/vue-resource.js"></script>
+    <script>
+    //    let serverHost = '104.194.84.81:8080'
+    let serverHost = window.location.host
+    let marker
+
+    new Vue({
+        el: '#app',
+        data: {
+            problemNum: null,
+            posx: 121.5897600000,
+            posy: 31.2481470000,
+        },
+        ready: function() {
+            this.getProblemsNum()
+        },
+        methods: {
+            getProblemsNum() {
+                let me = this
+                this.$http.patch('http://' + serverHost + '/problem').then(function(response) {
+                    me.problemNum = JSON.parse(response.data).data.length;
+                    me.showMap()
+                })
+            },
+
+            showMap() {
+                
+                // 百度地图API功能
+                let map = new BMap.Map("allmap");
+
+                //设置定位点
+                var point = new BMap.Point(this.posx, this.posy);
+                map.enableScrollWheelZoom(true);
+                map.centerAndZoom(point, 15);
+
+                var json_data = [
+                    [121.5669375397, 31.2251970950],
+                    [121.6271162541, 31.2528681909],
+                    [120.6213277884, 31.2554871292],
+                    [121.6270733388, 31.2528681909],
+                    [121.6280508041, 31.2466725194],
+                    [121.6287255795, 31.2560601596],
+                    [121.6219664128, 31.2600774842],
+                    [121.6246271642, 31.2552530053]
+                ];
+
+                var msgList = ['问题数: 1', '问题数: 2', '问题数: 4','问题数: 5','问题数: 7','问题数: 10','问题数: 8','问题数: 9'];
+                var pointArray = new Array();
+                for (var i = 0; i < json_data.length; i++) {
+                    // 设置红色标注
+                    marker = new BMap.Marker(new BMap.Point(json_data[i][0], json_data[i][1]));
+                    map.addOverlay(marker);
+                    pointArray[i] = new BMap.Point(json_data[i][0], json_data[i][1]);
+                    // marker.addEventListener("click", attribute);
+
+                    var opts = {
+                    position: pointArray[i], // 指定文本标注所在的地理位置
+                    offset: new BMap.Size(10, -40) //设置文本偏移量
+                }
+
+                    var label = new BMap.Label(msgList[i], opts); // 创建文本标注对象
+                    label.setStyle({
+                        color: "#F56867",
+                        fontSize: "14px",
+                        height: "20px",
+                        lineHeight: "20px",
+                        fontFamily: "微软雅黑",
+                        padding: "8px",
+                        border: "0px",
+                    });
+                    map.addOverlay(label);
+                    map.addOverlay(marker);
+                }
+
+                var msg = "问题数: " + this.problemNum;
+
+                
+                marker = new BMap.Marker(new BMap.Point(this.posx, this.posy));
+                marker.addEventListener("click", this.attribute);
+
+                var opts = {
+                    position: point, // 指定文本标注所在的地理位置
+                    offset: new BMap.Size(10, -40) //设置文本偏移量
+                }
+
+                //设置文字标签
+                var label = new BMap.Label(msg, opts); // 创建文本标注对象
+                label.setStyle({
+                    color: "blue",
+                    fontSize: "14px",
+                    height: "20px",
+                    lineHeight: "20px",
+                    fontFamily: "微软雅黑",
+                    padding: "8px",
+                    border: "0px",
+                });
+
+                marker.addEventListener("click", this.attribute);
+                map.addOverlay(label);
+                map.addOverlay(marker); //增加点
+
+            },
+
+            attribute() {
+                var p = marker.getPosition(); //获取marker的位置
+                window.location.href = 'hack-static.html'
+            },
+        }
+
+    })
+    </script>
+    <script>
+    </script>
+</body>
+
+</html>

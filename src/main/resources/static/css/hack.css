@@ -1,0 +1,56 @@
+ul li {
+  cursor: pointer;
+}
+ul li:hover {
+  background: #00C489;
+  opacity: 0.9;
+}
+textarea {
+  resize: none;
+  overflow: scroll;
+  overflow-x: hidden;
+}
+.content-wrapper {
+  height: 95%;
+  width: 100%;
+}
+.content-wrapper .list-header {
+  background: #515151;
+  height: 13%;
+  padding: 0px 10px;
+  color: white;
+}
+.content-wrapper .list-header span {
+  line-height: 50px;
+}
+.content-wrapper .left-panel {
+  height: 100%;
+  overflow: auto;
+  width: 20%;
+}
+.content-wrapper .left-panel .problem-list {
+  height: 40%;
+}
+.content-wrapper .left-panel .problem-list ul {
+  list-style-type: none;
+  padding: 0px 10px;
+}
+.content-wrapper .left-panel .problem-list ul li {
+  background: #E4E4E4;
+  height: 39px;
+  border-bottom: 1px solid white;
+  padding: 0px;
+}
+.content-wrapper .left-panel .problem-list ul .current-problem {
+  background: #ED6843;
+}
+.content-wrapper .left-panel .button {
+  font-size: 14px;
+  margin: 10px;
+  height: 40px;
+  line-height: 40px;
+}
+.content-wrapper .model-panel {
+  height: 100%;
+  width: 80%;
+}

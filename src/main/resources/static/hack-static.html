@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>BIMROAD problem示例</title>
+    <link rel="stylesheet" href="css/hack-new.css"/>
+
+    <script type="text/javascript" language="javascript" src="js/jquery-2.1.1.js"></script>
+    <script type="text/javascript" language="javascript" src="js/jquery.JNMagnifier.js"></script>
+
+    <script type="text/javascript">
+$(document).ready(function(){
+        $("#ShowPictureBox").JNMagnifier({
+            renderTo:"#ShowBigPictureBox"
+        });
+});
+</script>
+</head>
+
+<body>
+<div id="app">
+    <div class="header-bar">
+        <div>
+            <img class="head-logo-img" src="image/logo.png">
+            <span class="head-msg-left">{{roadName}}</span>
+        </div>
+    </div>
+    <div class="container">
+        <div class="left-bar">
+            <div class="left-title">
+                <img src="image/problem.png"><span>问题列表</span>
+            </div>
+            <div class="left-tab">
+                <div class="left-tab-item" @click="showProblems(false)" :class="{'current-tab':!solved}">
+                    <span>未解决</span>
+                </div>
+
+                <div class="left-tab-item" @click="showProblems(true)" :class="{'current-tab':solved}">
+                    <span>已解决</span>
+                </div>
+            </div>
+            <div class="left-content">
+                <div class="left-item" v-for="problem in problemList | filterBy solved"
+                     @click="showCurrentProblem(problem.id)"
+                     :class="{'current-problem':currentProblem.id == problem.id}">
+                    <span>{{problem.name}}</span>
+                </div>
+
+            </div>
+            <div class="left-detail" :class="{'hidden': currentProblem.id == null || currentProblem.solved != solved}">
+                <div><span class="left-detal-title">报告人:</span><span class="left-detail-info">{{currentProblem.reporter.name}}</span>
+                </div>
+                <div>
+                    <span class="left-detal-title">报告电话:</span><span class="left-detail-info">{{currentProblem.reporter.phoneNum}}</span>
+                </div>
+                <div>
+                    <span class="left-detal-title">报告时间:</span><span class="left-detail-info">{{currentProblem.reportTime | formatDate}}</span>
+                </div>
+                <div>
+                    <span class="left-detal-title">状态:</span><span class="left-detail-info">{{currentProblem.solved?'已解决':'未解决'}}</span>
+                </div>
+                <div>
+                    <span class="left-detal-title">内容:</span><span class="left-detail-info">{{currentProblem.content}}</span>
+                </div>
+
+                <div id="ShowPictureBox"> <img :src="currentProblem.imageUrl" style="width: 90%" ></div>
+
+                <div id="ShowBigPictureBox"></div>
+                <button class="left-button-new" @click="toBaiduMap(currentProblem.gps)">导航</button>
+                <button class="left-button-new" @click="updateProblem(currentProblem)">{{solved?'未解决':'已解决'}}</button>
+                <!--<div>-->
+                    <!--<div class="left-button" @click="toBaiduMap(currentProblem.gps)"><span>地图显示</span></div>-->
+                    <!--<div class="left-button" @click="updateProblem(currentProblem)">-->
+                        <!--<span>{{solved?'未解决':'已解决'}}</span>-->
+                    <!--</div>-->
+                <!--</div>-->
+
+            </div>
+        </div>
+        <div class="right-model">
+            <div id="model-panel" class='model-panel'></div>
+        </div>
+    </div>
+
+</div>
+<script src="https://static.bimface.com/api/BimfaceSDKLoader/BimfaceSDKLoader@latest-release.js"
+        charset="utf-8"></script>
+<script src="js/vue.js"></script>
+<script src="js/vue-resource.js"></script>
+<script src="js/sockjs.js"></script>
+<script src="js/stomp.js"></script>
+<script src="js/moment.js"></script>
+<script>
+    let serverHost = window.location.host
+    // let serverHost = 'localhost:8080'
+    let camera = {
+        "position": {
+            "x": 1376.184069938463,
+            "y": 189.7986129964163,
+            "z": -1059.3634355620288
+        },
+        "target": {"x": 1799.8324181854582, "y": -694.8124488132357, "z": -1840.7101646254064},
+        "up": {"x": 0, "y": 1, "z": 0}
+    };
+    new Vue({
+
+        el: '#app',
+        data: {
+            roadName: '上海市浦东新区蓝天路',
+            drawableContainer: null,
+            viewer3D: null,
+            img_cur: 'http://resource.bimface.com/developer/images/user_cur.png',
+            img_other: 'http://resource.bimface.com/developer/images/user_other.png',
+            currentProblem: {id: null, reporter: {name: null}, position: {}},
+            problemList: [],
+            wellList: [],
+            solved: false
+        },
+        filters: {
+            formatDate(time) {
+                return this.moment(String(time)).format('YYYY/MM/DD hh:mm')
+            }
+        },
+        ready: function () {
+            this.innitializeClient()
+            this.getProblems()
+            this.getWells()
+            this.mount()
+        },
+        methods: {
+            moment: function () {
+                return moment();
+            },
+            mount: function () {
+                this.$http.get('http://bimface.com/console/share/preview/viewtoken?token=098362d8').then(
+                    function (res) {
+                        let data = JSON.parse(res.data)
+                        if (data.code === 'success') {
+                            this.viewToken = data.data
+                            let options = new BimfaceSDKLoaderConfig()
+                            options.viewToken = this.viewToken
+                            BimfaceSDKLoader.load(options, this.mountSuccess, this.mountFailure)
+                        }
+                    }
+                )
+            },
+            mountSuccess: function () {
+                let me = this;
+
+                // 获取DOM元素
+                let dom4Show = document.getElementById('model-panel')
+                let webAppConfig = new Glodon.Bimface.Application.WebApplication3DConfig();
+                webAppConfig.domElement = dom4Show;
+
+                // 创建WebApplication
+                let app = new Glodon.Bimface.Application.WebApplication3D(webAppConfig);
+                // 添加待显示的模型
+                app.addView(this.viewToken);
+                // 监听添加view完成的事件
+                app.addEventListener(Glodon.Bimface.Application.WebApplication3DEvent.ViewAdded, function () {
+                    setTimeout(me.resetCameraStatus, 400);
+                    // 渲染3D模型
+                    app.render();
+                    // 从WebApplication获取viewer3D对象
+                    me.viewer3D = app.getViewer();
+                    // 调用viewer3D对象的Method，可以继续扩展功能
+                    let drawaleContainerConfig = new Glodon.Bimface.Plugins.Drawable.DrawableContainerConfig()
+                    drawaleContainerConfig.viewer = me.viewer3D
+                    me.drawableContainer = new Glodon.Bimface.Plugins.Drawable.DrawableContainer(drawaleContainerConfig)
+                    me.draw()
+                });
+
+                // 监听添加view进行中的时间，可获取添加进度
+                app.addEventListener(Glodon.Bimface.Application.WebApplication3DEvent.ViewAdded, function (progress) {
+                    var toolbar = app.getToolbar('MainToolbar');
+                    var btnConfig = new Glodon.Bimface.UI.Button.ButtonConfig();
+                    btnConfig.title = "隐藏";
+                    var btn = new Glodon.Bimface.UI.Button.Button(btnConfig);
+                    btn.setHtml(`<button style="width: 50px; height:50px; left: -8px; top: -8px; position: relative; color: white; font-size: 18px;background: rgba(0, 0, 0, 0);opacity: 0.6;border: none;">隐藏</button>`);
+                    btn.addClassName('btn-test');
+                    btn.addEventListener('Click', function () {
+                        me.viewer3D.showExclusiveComponentsByObjectData([{"categoryId": -2001320}, {"categoryId": -2008044}, {"categoryId": -2008055}, {"categoryId": -2001360}, {"categoryId": -2001260}]);
+                        me.viewer3D.render();
+                    });
+
+                    var btnConfig1 = new Glodon.Bimface.UI.Button.ButtonConfig();
+                    btnConfig1.title = "显示";
+                    var btn1 = new Glodon.Bimface.UI.Button.Button(btnConfig1);
+                    btn1.setHtml(`<button style="width: 50px; height:50px; left: -8px; top: -8px; position: relative; color: white; font-size: 18px;background: rgba(0, 0, 0, 0);opacity: 0.6;border: none;">显示</button>`);
+                    btn1.addClassName('btn-test');
+                    btn1.addEventListener('Click', function () {
+                        me.viewer3D.showAllComponents();
+                        me.viewer3D.render();
+                    });
+
+                    toolbar.insertControl(2, btn);
+                    toolbar.insertControl(3, btn1);
+                });
+            },
+
+            resetCameraStatus: function () {
+                console.log("set camera status")
+                this.viewer3D.setCameraStatus(camera)
+                this.viewer3D.render()
+            },
+            mountFailure: function (error) {
+                console.log(error)
+            },
+            innitializeClient: function () {
+                this.client = Stomp.client('ws://' + serverHost + '/websocket');
+                this.client.connect({},
+                    f => {
+                        console.log(f)
+                        this.client.subscribe('/problems', frame => {
+                            this.problemList = JSON.parse(frame.body)
+                            this.draw()
+                        })
+                        this.client.subscribe('/wells', frame => {
+                            this.wellList = JSON.parse(frame.body)
+                            this.draw()
+                        })
+                    },
+                    error => {
+                        console.log(error)
+                    }
+                );
+                this.client.onmessage = event => {
+                    this.updateProblems(JSON.parse(event.data))
+                };
+            },
+            updateProblems: function (problems) {
+                this.problemList = problems
+                this.draw()
+            },
+            getProblems: function () {
+                this.$http.patch('http://' + serverHost + '/problem').then(function (response) {
+                    this.problemList = JSON.parse(response.data).data
+                })
+            },
+
+            showProblems: function (solved) {
+                this.solved = solved
+                this.draw()
+            },
+            showCurrentProblem: function (problemId) {
+                this.currentProblem = this.problemList.find(t => problemId === t.id)
+                this.solved = this.currentProblem.solved
+                this.draw()
+                let boundingbox = getBoundingbox(this.currentProblem.position)
+                this.viewer3D.zoomToBoundingBox(boundingbox);
+            },
+            updateProblem: function (problem) {
+                let me = this
+                problem.solved = !problem.solved
+                this.currentProblem = problem
+                this.$http.put('http://' + serverHost + '/problem', problem).then(function () {
+                    me.solved = problem.solved
+                    me.currentProblem = problem
+                    me.draw()
+                })
+            },
+            deleteProblem: function (problemId) {
+                this.$http.delete('http://' + serverHost + '/problem/' + problemId)
+            },
+            getWells: function () {
+                this.$http.patch('http://' + serverHost + '/well').then(function (response) {
+                    this.wellList = JSON.parse(response.data).data
+                })
+            },
+
+            toBaiduMap: function (gps) {
+                window.open('http://' + serverHost + '/guide.html?jd=' + gps.jd + '&wd=' + gps.wd)
+            },
+            draw: function () {
+                let me = this;
+                let tagArr = []
+                for (let i = 0; i < this.wellList.length; i++) {
+                    let well = this.wellList[i]
+                    if (well.status === -1) {
+                        let config = new Glodon.Bimface.Plugins.Drawable.CustomItemConfig();
+                        let circle = document.createElement('div');
+                        circle.className = 'bln';
+                        config.content = circle;
+                        config.viewer = this.viewer3D;
+                        config.index = i;
+                        config.worldPosition = well.position;
+
+                        //生成customItem实例
+                        let customItem = new Glodon.Bimface.Plugins.Drawable.CustomItem(config);
+
+                        //自定义标签的鼠标左键事件
+                        customItem.onClick(function () {
+                            let boundingbox = getBoundingbox(well.position)
+                            me.viewer3D.zoomToBoundingBox(boundingbox);
+                        });
+                        customItem.onRightClick(function () {
+                            me.viewer3D.setCameraStatus(camera)
+                        });
+                        tagArr.push(customItem);
+                    } else {
+                        let config = new Glodon.Bimface.Plugins.Drawable.CustomItemConfig();
+
+                        let circle = document.createElement('div');
+                        circle.className = 'well';
+                        circle.innerText = "湿度:" + well.rhumid.toFixed(1) + " 温度:" + well.temp;
+                        config.content = circle;
+
+                        config.viewer = this.viewer3D;
+                        config.worldPosition = well.position;
+
+                        //生成customItem实例
+                        let customItem = new Glodon.Bimface.Plugins.Drawable.CustomItem(config);
+
+                        //自定义标签的鼠标左键事件
+                        customItem.onClick(function () {
+                            let boundingbox = getBoundingbox(well.position)
+                            me.viewer3D.zoomToBoundingBox(boundingbox);
+                        });
+                        //自定义标签的鼠标右键事件
+                        customItem.onRightClick(function () {
+                            me.resetCameraStatus()
+                        });
+                        tagArr.push(customItem);
+                    }
+                }
+                let statusProblems = me.problemList.filter(t => t.solved === me.solved)
+                for (let i = 0; i < statusProblems.length; i++) {
+                    let problem = statusProblems[i]
+                    let config = new Glodon.Bimface.Plugins.Drawable.CustomItemConfig();
+
+                    let circle = document.createElement('div');
+                    circle.className = 'dialog';
+                    if (problem.id === this.currentProblem.id) {
+                        circle.style.background = '#ff7438';
+                    } else {
+                        circle.style.background = '#fff';
+                    }
+
+                    if (me.solved) {
+                        circle.innerHTML = '<p>' + problem.name + '</p>';
+                    } else {
+                        circle.innerHTML = '<p>' + problem.name + '</p><img src="image/point.png" style="width:27.6px;height:32.5px;"/>';
+                    }
+                    config.content = circle;
+                    config.viewer = this.viewer3D;
+
+                    //增加一个Tip提示
+                    config.tooltip = problem.content;
+                    config.worldPosition = problem.position;
+                    //生成customItem实例
+                    let customItem = new Glodon.Bimface.Plugins.Drawable.CustomItem(config);
+
+                    //自定义标签的鼠标左键事件
+
+                    customItem.onClick(function () {
+
+                        me.currentProblem = problem
+                        me.draw()
+                        let boundingbox = getBoundingbox(problem.position);
+                        me.viewer3D.zoomToBoundingBox(boundingbox);
+                    });
+
+                    //自定义标签的鼠标右键事件
+                    customItem.onRightClick(function () {
+                    });
+                    tagArr.push(customItem);
+                }
+                this.drawableContainer.addItems(tagArr);
+            }
+        }
+    })
+
+    function getBoundingbox(position) {
+        let num = 1.015;
+        let max = position.x * num;
+        let may = position.y * num;
+        let maz = position.z * num;
+        let mix = position.x / num;
+        let miy = position.y / num;
+        let miz = position.z / num;
+        let maxp = {x: max, y: may, z: maz};
+        let minp = {x: mix, y: miy, z: miz};
+        return {max: maxp, min: minp};
+    }
+
+</script>
+</body>
+
+</html>

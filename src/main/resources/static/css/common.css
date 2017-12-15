@@ -1,0 +1,101 @@
+.left {
+  float: left;
+}
+.right {
+  float: right;
+}
+.hidden {
+  visibility: hidden;
+}
+.button {
+  background: #00C489;
+  border-radius: 5px;
+  color: white;
+  text-align: center;
+  cursor: pointer;
+}
+.button:hover {
+  opacity: 0.9;
+}
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+html {
+  _height: auto;
+  _padding: 100px 0 50px;
+}
+.container, .main-wrapper, #app{
+  height: 100%;
+  margin: 0;
+}
+.main-wrapper .header-wrapper {
+  background: #199ED8;
+  height: 60px;
+  width: 100%;
+  padding: 0px 20px;
+}
+.main-wrapper .header-wrapper span {
+  line-height: 60px;
+  color: white;
+}
+.main-wrapper .header-wrapper .user-avatar {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  margin: 14px;
+  color: black;
+}
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 99;
+}
+.popup .popup-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.popup .popup-box .tit {
+  line-height: 39px;
+  padding: 0 10px;
+  color: #333;
+  background-color: #f4f4f4;
+}
+.popup .popup-box .tit .close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 20px;
+  color: #333;
+}
+.popup .popup-box .tit .close:hover {
+  text-decoration: none;
+  color: #000;
+}
+.popup .popup-box .body {
+  border: 1px solid #f4f4f4;
+  background-color: #fff;
+  padding: 15px;
+}
+.popup .popup-box .body .content {
+  min-height: 100px;
+}
+.popup .popup-box .body .btn-box {
+  margin: 10px auto 0;
+  overflow: hidden;
+  text-align: right;
+}
+.popup .popup-box .body .btn-box span {
+  float: right;
+  margin: 0 5px;
+}
